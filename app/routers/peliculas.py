@@ -12,7 +12,7 @@ from app.database import get_session
 from app.models import Pelicula, Favorito
 from app.schemas import PeliculaCreate, PeliculaRead, PeliculaUpdate
 
-# TODO: Crear el router con prefijo y tags
+# Crear el router con prefijo y tags
 router = APIRouter(
     prefix="/api/peliculas",
     tags=["Películas"]
@@ -121,7 +121,7 @@ def actualizar_pelicula(
         )
 
 
-    # TODO: Actualizar solo los campos proporcionados
+    # Actualizar solo los campos proporcionados
     pelicula_data = pelicula_update.model_dump(exclude_unset=True)
     #aplicar los cambios a la pelicula
     for key, value in pelicula_data.items():
@@ -254,7 +254,7 @@ def peliculas_por_clasificacion(
     
     - **clasificacion**: G, PG, PG-13, R, NC-17
     """
-    # TODO: Validar clasificación
+    # Validar clasificación
     clasificaciones_validas = ["G", "PG", "PG-13", "R", "NC-17"]
     if clasificacion.upper() not in clasificaciones_validas:
         raise HTTPException(
