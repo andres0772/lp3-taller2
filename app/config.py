@@ -62,7 +62,7 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-# Crear diferentes configuraciones para cada entorno
+# Opcional - Crear diferentes configuraciones para cada entorno
 class DevelopmentSettings(Settings):
     """Configuración para el entorno de desarrollo."""
     debug: bool = True
