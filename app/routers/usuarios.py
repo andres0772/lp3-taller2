@@ -272,7 +272,7 @@ def eliminar_favorito(
     - **usuario_id**: ID del usuario
     - **pelicula_id**: ID de la película
     """
-    # TODO: Buscar el favorito
+    # Buscar el favorito
     statement = select(Favorito).where(
         Favorito.id_usuario == usuario_id,
         Favorito.id_pelicula == pelicula_id
