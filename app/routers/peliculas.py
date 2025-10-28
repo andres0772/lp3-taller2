@@ -285,5 +285,3 @@ def peliculas_recientes(
     statement = select(Pelicula).order_by(Pelicula.fecha_creacion.desc()).limit(limit)
     peliculas = session.exec(statement).all()
     return peliculas
-    pass
-
