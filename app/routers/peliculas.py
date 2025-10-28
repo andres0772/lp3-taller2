@@ -4,8 +4,9 @@ Endpoints para gestionar películas en la plataforma.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import Session, select, or_, col
+from sqlmodel import Session, select, col
 from typing import List, Optional
+from sqlalchemy import func
 
 from app.database import get_session
 from app.models import Pelicula, Favorito
@@ -18,7 +19,7 @@ router = APIRouter(
 )
 
 
-# TODO: Endpoint para listar todas las películas
+# Endpoint para listar todas las películas
 @router.get("/", response_model=List[PeliculaRead])
 def listar_peliculas(
     session: Session = Depends(get_session),
@@ -31,13 +32,13 @@ def listar_peliculas(
     - **skip**: Número de registros a omitir (para paginación)
     - **limit**: Número máximo de registros a retornar
     """
-    # TODO: Consultar todas las películas con paginación
+    # Consultar todas las películas con paginación
     statement = select(Pelicula).offset(skip).limit(limit)
     peliculas = session.exec(statement).all()
     return peliculas
 
 
-# TODO: Endpoint para crear una nueva película
+# Endpoint para crear una nueva película
 @router.post("/", response_model=PeliculaRead, status_code=status.HTTP_201_CREATED)
 def crear_pelicula(
     pelicula: PeliculaCreate,
@@ -54,23 +55,29 @@ def crear_pelicula(
     - **clasificacion**: Clasificación por edad (G, PG, PG-13, R, etc.)
     - **sinopsis**: Breve descripción de la trama
     """
-    # TODO: Verificar que no exista una película con el mismo título y año
-    statement = 
+    # Verificar que no exista una película con el mismo título y año
+    statement = select(Pelicula).where(
+        Pelicula.titulo.ilike(f"%{pelicula.titulo}%"),
+        Pelicula.año == pelicula.año
+    )
     
-    existing_pelicula = 
+    existing_pelicula = session.exec(statement) .first()
     if existing_pelicula:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Ya existe una película con el título '{pelicula.titulo}' del año {pelicula.año}"
         )
     
-    # TODO: Crear la nueva película
-    db_pelicula = 
+    # Crear la nueva película
+    db_pelicula = Pelicula.model_validate(pelicula) 
+    session.add(db_pelicula)
+    session.commit()
+    session.refresh(db_pelicula) 
     
     return db_pelicula
 
 
-# TODO: Endpoint para obtener una película por ID
+# Endpoint para obtener una película por ID
 @router.get("/{pelicula_id}", response_model=PeliculaRead)
 def obtener_pelicula(
     pelicula_id: int,
@@ -81,17 +88,18 @@ def obtener_pelicula(
     
     - **pelicula_id**: ID de la película
     """
-    # TODO: Buscar la película por ID
+    # Buscar la película por ID
     pelicula = session.get(Pelicula, pelicula_id)
     if not pelicula:
         raise HTTPException(
-            # TODO: Código y Detalle del Error
-
+            # Código y Detalle del Error
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Película con id {pelicula_id} no encontrada"
         )
     return pelicula
 
 
-# TODO: Endpoint para actualizar una película
+# Endpoint para actualizar una película
 @router.put("/{pelicula_id}", response_model=PeliculaRead)
 def actualizar_pelicula(
     pelicula_id: int,
@@ -104,17 +112,29 @@ def actualizar_pelicula(
     - **pelicula_id**: ID de la película a actualizar
     - Los campos son opcionales, solo se actualizan los proporcionados
     """
-    # TODO: Buscar la película
-    db_pelicula = 
+    # Buscar la película
+    db_pelicula = session.get(Pelicula, pelicula_id)
+    if not db_pelicula:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Película con id {pelicula_id} no encontrada"
+        )
 
 
     # TODO: Actualizar solo los campos proporcionados
-    pelicula_data = 
+    pelicula_data = pelicula_update.model_dump(exclude_unset=True)
+    #aplicar los cambios a la pelicula
+    for key, value in pelicula_data.items():
+        setattr(db_pelicula, key, value)
+
+    session.add(db_pelicula)
+    session.commit()
+    session.refresh(db_pelicula)
 
     return db_pelicula
 
 
-# TODO: Endpoint para eliminar una película
+# Endpoint para eliminar una película
 @router.delete("/{pelicula_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_pelicula(
     pelicula_id: int,
@@ -141,7 +161,7 @@ def eliminar_pelicula(
     return None
 
 
-# TODO: Endpoint para buscar películas
+# Endpoint para buscar películas
 @router.get("/buscar/", response_model=List[PeliculaRead])
 def buscar_peliculas(
     titulo: Optional[str] = Query(None, description="Buscar por título"),
@@ -163,35 +183,34 @@ def buscar_peliculas(
     - **año_min**: Busca películas desde este año en adelante
     - **año_max**: Busca películas hasta este año
     """
-    # TODO: Construir la consulta base
-    # statement = select(Pelicula)
+    #Construir la consulta base
+    statement = select(Pelicula)
     
-    # TODO: Agregar filtros según los parámetros proporcionados
-    # if titulo:
-    #     statement = statement.where(col(Pelicula.titulo).contains(titulo))
+    #Agregar filtros según los parámetros proporcionados
+    if titulo:
+        statement = statement.where(col(Pelicula.titulo).contains(titulo))
     
-    # if director:
-    #     statement = statement.where(col(Pelicula.director).contains(director))
+    if director:
+        statement = statement.where(col(Pelicula.director).contains(director))
     
-    # if genero:
-    #     statement = statement.where(col(Pelicula.genero).contains(genero))
+    if genero:
+        statement = statement.where(col(Pelicula.genero).contains(genero))
     
-    # if año:
-    #     statement = statement.where(Pelicula.año == año)
+    if año:
+        statement = statement.where(Pelicula.año == año)
     
-    # if año_min:
-    #     statement = statement.where(Pelicula.año >= año_min)
+    if año_min:
+        statement = statement.where(Pelicula.año >= año_min)
     
-    # if año_max:
-    #     statement = statement.where(Pelicula.año <= año_max)
+    if año_max:
+        statement = statement.where(Pelicula.año <= año_max)
     
-    # TODO: Ejecutar la consulta y retornar resultados
-    # peliculas = session.exec(statement).all()
-    # return peliculas
-    pass
+    #Ejecutar la consulta y retornar resultados
+    peliculas = session.exec(statement).all()
+    return peliculas
 
 
-# TODO: Opcional - Endpoint para obtener películas más populares
+#Endpoint para obtener películas más populares
 @router.get("/populares/top", response_model=List[PeliculaRead])
 def peliculas_populares(
     limit: int = Query(10, ge=1, le=50, description="Número de películas a retornar"),
@@ -202,16 +221,28 @@ def peliculas_populares(
     
     - **limit**: Número de películas a retornar (máximo 50)
     """
-    # TODO: Consultar películas ordenadas por número de favoritos
-    from sqlalchemy import func
-    statement = 
+    # Consultar películas ordenadas por número de favoritos
+    subquery = (
+    select(
+        Favorito.id_pelicula,
+        func.count(Favorito.id_pelicula).label("total_favoritos")
+    )
+    .group_by(Favorito.id_pelicula)
+    .subquery()
+   )
+    statement = (
+        select(Pelicula, func.coalesce(subquery.c.total_favoritos, 0).label("total_favoritos"))
+        .outerjoin(subquery, Pelicula.id == subquery.c.id_pelicula)
+        .order_by(func.coalesce(subquery.c.total_favoritos, 0).desc())
+        .limit(limit)
+    )
 
-    results = 
+    results = session.execute(statement).all()
     peliculas = [ result[0] for result in results ]
     return peliculas
 
 
-# TODO: Opcional - Endpoint para obtener películas por clasificación
+# Endpoint para obtener películas por clasificación
 @router.get("/clasificacion/{clasificacion}", response_model=List[PeliculaRead])
 def peliculas_por_clasificacion(
     clasificacion: str,
@@ -227,19 +258,19 @@ def peliculas_por_clasificacion(
     clasificaciones_validas = ["G", "PG", "PG-13", "R", "NC-17"]
     if clasificacion.upper() not in clasificaciones_validas:
         raise HTTPException(
-            # TODO: código y detalle del error
-
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Clasificación inválida. Las opciones son: {', '.join(clasificaciones_validas)}"
         )
     
-    # TODO: Buscar películas por clasificación
-    # statement = select(Pelicula).where(
-    #     Pelicula.clasificacion == clasificacion.upper()
-    # ).limit(limit)
-    # peliculas = session.exec(statement).all()
+    # Buscar películas por clasificación
+    statement = select(Pelicula).where(
+        Pelicula.clasificacion == clasificacion.upper()
+     ).limit(limit)
+    peliculas = session.exec(statement).all()
     return peliculas
 
 
-# TODO: Opcional - Endpoint para obtener películas recientes
+# Endpoint para obtener películas recientes
 @router.get("/recientes/nuevas", response_model=List[PeliculaRead])
 def peliculas_recientes(
     limit: int = Query(10, ge=1, le=50),
@@ -250,9 +281,9 @@ def peliculas_recientes(
     
     - **limit**: Número de películas a retornar
     """
-    # TODO: Consultar películas ordenadas por fecha de creación
-    # statement = select(Pelicula).order_by(Pelicula.fecha_creacion.desc()).limit(limit)
-    # peliculas = session.exec(statement).all()
-    # return peliculas
+    # Consultar películas ordenadas por fecha de creación
+    statement = select(Pelicula).order_by(Pelicula.fecha_creacion.desc()).limit(limit)
+    peliculas = session.exec(statement).all()
+    return peliculas
     pass
 
