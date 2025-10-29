@@ -155,7 +155,13 @@ def eliminar_pelicula(
             detail=f"Película con id {pelicula_id} no encontrada"
         )
     
-    # Eliminar la película (los favoritos se eliminan por CASCADE)
+    # Eliminar los favoritos asociados a esta película primero
+    statement = select(Favorito).where(Favorito.id_pelicula == pelicula_id)
+    favoritos_a_eliminar = session.exec(statement).all()
+    for favorito in favoritos_a_eliminar:
+        session.delete(favorito)
+    
+    # Ahora eliminar la película
     session.delete(pelicula)
     session.commit()
     return None

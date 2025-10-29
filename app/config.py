@@ -4,8 +4,8 @@ Maneja diferentes entornos: desarrollo, pruebas y producción.
 """
 
 from pydantic_settings import BaseSettings
-from typing import Literal
-from pydantic import validator
+from typing import Literal, ClassVar
+from pydantic import field_validator, ConfigDict
 
 class Settings(BaseSettings):
     """
@@ -41,21 +41,18 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: str = "%(asctime)s - %(levelname)s - %(message)s - %(message)s"
     log_date_format: str = "%Y-%m-%d %H:%M:%S"
-    
-    class Config:
-        """
-        Configuración de Pydantic Settings.
-        """
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        
-        # Opcional - Agregar validación personalizada
-        @validator("database_url")
-        def validate_database_url(cls, v):
-            if not v:
-                raise ValueError("DATABASE_URL no puede estar vacío")
-            return v
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False
+    )
+
+    @field_validator("database_url")
+    def validate_database_url(cls, v):
+        if not v:
+            raise ValueError("DATABASE_URL no puede estar vacío")
+        return v
 
 
 # Crear una instancia global de Settings
@@ -113,4 +110,3 @@ def validate_settings():
     for setting in required_settings:
         if not getattr(settings, setting, None):
             raise ValueError(f"Configuración requerida no encontrada: {setting}")
-

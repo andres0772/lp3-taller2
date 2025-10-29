@@ -3,7 +3,7 @@ Configuración de la base de datos y gestión de sesiones.
 Utiliza SQLModel para ORM y gestión de conexiones.
 """
 
-from cgitb import text
+from sqlalchemy import text
 from sqlmodel import SQLModel, create_engine, Session, select
 from typing import Generator
 from app.models import Usuario, Pelicula, Favorito
@@ -62,7 +62,7 @@ def check_database_connection() -> bool:
     """
     try:
         with Session(engine) as session:
-            session.exe(text("SELECT 1")).one()
+            session.exec(text("SELECT 1")).one()
             print("Conexión a la base de datos exitosa")
             return True
     except Exception as e:
@@ -101,8 +101,8 @@ def init_sample_data():
 
         # 2. Crear datos de ejemplo
         usuarios = [
-            Usuario(nombre="Ana", correo="ana@ejemplo.com", contrasena="123"),
-            Usuario(nombre="Carlos", correo="carlos@ejemplo.com", contrasena="456"),
+            Usuario(nombre="Ana", correo="ana@ejemplo.com"),
+            Usuario(nombre="Carlos", correo="carlos@ejemplo.com"),
         ]
         peliculas = [
             Pelicula(titulo="El Padrino", genero="Drama", año=1972),

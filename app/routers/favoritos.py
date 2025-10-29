@@ -4,16 +4,17 @@ Endpoints para gestionar las relaciones de favoritos entre usuarios y películas
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select
+from sqlmodel import Session, select, col
 from typing import List
-from sqlalchemy import func, or_, col
+from sqlalchemy import func, or_
 
 from app.database import get_session
 from app.models import Favorito, Usuario, Pelicula
 from app.schemas import (
     FavoritoCreate,
     FavoritoRead,
-    FavoritoWithDetails
+    FavoritoWithDetails,
+    PeliculaRead
 )
 
 # Crear el router con prefijo y tags
@@ -304,7 +305,7 @@ def eliminar_todos_favoritos_usuario(
 
 
 # Endpoint para obtener recomendaciones basadas en favoritos
-@router.get("/recomendaciones/{usuario_id}", response_model=List)
+@router.get("/recomendaciones/{usuario_id}", response_model=List[PeliculaRead])
 def obtener_recomendaciones(
     usuario_id: int,
     limit: int = 5,
@@ -359,4 +360,3 @@ def obtener_recomendaciones(
     )
     recomendaciones = session.exec(statement_recomendaciones).all()
     return recomendaciones
-

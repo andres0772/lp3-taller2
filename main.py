@@ -1,10 +1,9 @@
 import datetime
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from sqlalchemy import Depends
 from time import time
 
 from app.database import create_db_and_tables, get_session
@@ -59,7 +58,9 @@ app.add_middleware(
 
 # Incluir los routers de usuarios, peliculas y favoritos
 # Ejemplo:
-app.include_router(usuarios.router, prefix="/api/usuarios", tags=["Usuarios"])
+app.include_router(usuarios.router)
+app.include_router(peliculas.router)
+app.include_router(favoritos.router)
 
 
 # Crear un endpoint raíz que retorne información básica de la API
@@ -83,7 +84,7 @@ async def root():
             "favoritos": "/api/favoritos"
         },
         "status": "activo",
-        "entorno": settings.ENVIRONMENT if hasattr(settings, "ENVIRONMENT") else "desarrollo"
+        "entorno": settings.environment
     }
 
 
@@ -108,9 +109,9 @@ async def health_check(db: Session = Depends(get_session)):  # Cambiado de 'dB' 
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    start_time = time.time()
+    start_time = time()
     response = await call_next(request)
-    process_time = time.time() - start_time
+    process_time = time() - start_time
     
     print(f"{request.method} {request.url} - {response.status_code} - {process_time:.2f}s")
     return response
@@ -125,5 +126,4 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         reload=True
-    )
-
+ )

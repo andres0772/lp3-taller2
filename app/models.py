@@ -8,7 +8,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
 from datetime import datetime
 from sqlalchemy import UniqueConstraint
-from sqlmodel import validator
+from pydantic import field_validator
 
 class Usuario(SQLModel, table=True):
     """
@@ -22,7 +22,25 @@ class Usuario(SQLModel, table=True):
     
     favoritos: List["Favorito"] = Relationship(back_populates="usuario")
     
-    pass
+    # Opcional - Agregar validadores personalizados
+    @field_validator('correo')
+    def validar_correo(cls, v):
+        """
+        Valida que el correo electrónico tenga un formato válido y lo convierte a minúsculas.
+        """
+        if '@' not in v:
+            raise ValueError('Correo electrónico inválido')
+        return v.lower()
+
+    def __repr__(self):
+        """Representación en string del objeto Usuario."""
+        return f"<Usuario(id={self.id}, nombre='{self.nombre}', correo='{self.correo}')>"
+
+    @property
+    def cantidad_favoritos(self) -> int:
+        """Retorna la cantidad de películas favoritas del usuario."""
+        return len(self.favoritos) if self.favoritos else 0
+
 
 
 # Modelo Pelicula
@@ -62,32 +80,5 @@ class Favorito(SQLModel, table=True):
     usuario: Optional[Usuario] = Relationship(back_populates="favoritos")
     pelicula: Optional[Pelicula] = Relationship(back_populates="favoritos")
     
-    # Opcional - Agregar restricción de unicidad
-    class Config:
-        # Evita que un usuario marque la misma película como favorita más de una vez
-        table_args = (
-            UniqueConstraint('id_usuario', 'id_pelicula', name='unique_user_movie'),
-        )
-    
-    pass
-
-
-# Opcional - Agregar métodos útiles a los modelos
-def __repr__(self):
-    return f"<Usuario(id={self.id}, nombre={self.nombre}, correo={self.correo})>"
-
-@property
-def cantidad_favoritos(self) -> int:
-    """Retorna la cantidad de películas favoritas del usuario."""
-    return len(self.favoritos) if self.favoritos else 0
-
-
-# Opcional - Agregar validadores personalizados
-
-
-@validator('correo')
-def validar_correo(cls, v):
-    if '@' not in v:
-        raise ValueError('Correo electrónico inválido')
-    return v.lower()
-
+    # Evita que un usuario marque la misma película como favorita más de una vez
+    __table_args__ = (UniqueConstraint("id_usuario", "id_pelicula", name="unique_user_movie"),)

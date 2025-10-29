@@ -3,7 +3,6 @@ Router de Usuarios.
 Endpoints para gestionar usuarios en la plataforma.
 """
 
-from app.routers import peliculas
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import List
@@ -15,7 +14,6 @@ from app.schemas import (
     UsuarioCreate,
     UsuarioRead,
     UsuarioUpdate,
-    UsuarioWithFavoritos,
     PeliculaRead
 )
 
@@ -40,7 +38,7 @@ def listar_usuarios(
     - **limit**: Número máximo de registros a retornar
     """
     # Consultar todos los usuarios con paginación
-    usuarios = session.exec(select(Usuario) .offset(skip) .limit(limit).all())
+    usuarios = session.exec(select(Usuario).offset(skip).limit(limit)).all()
     return usuarios
 
 
@@ -166,7 +164,13 @@ def eliminar_usuario(
             detail=f"Usuario con id {usuario_id} no encontrado"
         )
     
-    # Eliminar el usuario (los favoritos se eliminan por CASCADE)
+    # Eliminar los favoritos asociados al usuario primero
+    statement = select(Favorito).where(Favorito.id_usuario == usuario_id)
+    favoritos_a_eliminar = session.exec(statement).all()
+    for favorito in favoritos_a_eliminar:
+        session.delete(favorito)
+
+    # Ahora eliminar el usuario
     session.delete(usuario)
     session.commit()
     return None
@@ -310,6 +314,11 @@ def obtener_estadisticas_usuario(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Usuario con id {usuario_id} no encontrado"
         )
+
+    # Obtener las películas favoritas del usuario para calcular las estadísticas
+    statement = select(Pelicula).join(Favorito).where(Favorito.id_usuario == usuario_id)
+    peliculas = session.exec(statement).all()
+
     # Calcular número total de favoritos
     total_favoritos = len(peliculas)
         
